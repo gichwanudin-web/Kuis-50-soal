@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuis 50 Soal</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f2f4f8;
+    color: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+  }
+  .app {
+    width: 100%;
+    max-width: 520px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+    padding: 22px 18px;
+    align-self: flex-start;
+    margin-top: 10px;
+  }
+  h1 { font-size: 20px; margin: 0 0 6px; text-align: center; }
+  .sub { font-size: 13px; color: #666; text-align: center; margin-bottom: 20px; }
+  input[type="text"] {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    border: 1.5px solid #ccd2e0;
+    border-radius: 12px;
+    outline: none;
+    margin-bottom: 14px;
+  }
+  input[type="text"]:focus { border-color: #4a6cf7; }
+  button.main-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: #4a6cf7;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  button.main-btn:active { background: #3a57d6; }
+  .progress-wrap {
+    height: 8px;
+    background: #e4e8f2;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #4a6cf7;
+    border-radius: 99px;
+    transition: width 0.25s ease;
+  }
+  .counter { font-size: 13px; color: #888; text-align: right; margin-bottom: 14px; }
+  .q-text {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.45;
+    margin-bottom: 6px;
+  }
+  .q-sub {
+    font-size: 13px;
+    color: #777;
+    line-height: 1.4;
+    margin-bottom: 18px;
+  }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px 14px;
+    border: 1.5px solid #d7dce8;
+    border-radius: 12px;
+    background: #fafbff;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.4;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .option:active { background: #eef1fb; border-color: #4a6cf7; }
+  .option .letter {
+    font-weight: 700;
+    color: #4a6cf7;
+    min-width: 18px;
+  }
+  .option.selected {
+    background: #e6ebff;
+    border-color: #4a6cf7;
+  }
+  .option.disabled { pointer-events: none; opacity: 0.7; }
+  .result-box { text-align: center; padding: 10px 0 4px; }
+  .result-box .score-big {
+    font-size: 46px;
+    font-weight: 800;
+    color: #4a6cf7;
+    line-height: 1;
+    margin: 10px 0 4px;
+  }
+  .result-box .pct-big {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 18px;
+  }
+  .result-box .detail { font-size: 14px; color: #666; margin-bottom: 22px; }
+  .result-box .name-line { font-size: 15px; color: #444; margin-bottom: 4px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SCREEN 1: NAMA -->
+  <div id="screen-start">
+    <h1>Kuis 50 Soal</h1>
+    <p class="sub">Masukkan nama, lalu mulai kuis</p>
+    <input type="text" id="nameInput" placeholder="Nama Anda" autocomplete="off">
+    <button class="main-btn" id="startBtn">Mulai Kuis</button>
+  </div>
+
+  <!-- SCREEN 2: SOAL -->
+  <div id="screen-quiz" class="hidden">
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="counter" id="counter">1 / 50</div>
+    <div class="q-text" id="qText"></div>
+    <div class="q-sub" id="qSub"></div>
+    <div class="options" id="options"></div>
+  </div>
+
+  <!-- SCREEN 3: HASIL -->
+  <div id="screen-result" class="hidden">
+    <div class="result-box">
+      <div class="name-line" id="resultName"></div>
+      <div class="score-big" id="scoreBig">0</div>
+      <div class="detail">dari 50 soal</div>
+      <div class="pct-big" id="pctBig">0%</div>
+      <button class="main-btn" id="restartBtn">Ulangi Kuis</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============ DATA SOAL ============
+// Setiap soal: q = teks Jepang, sub = terjemahan Indonesia, opts = 5 pilihan (A-E), ans = index jawaban benar (0=A ... 4=E)
+const QUESTIONS = [
+  {
+    q: "介護過程の目的として最も適切なものはどれですか？",
+    sub: "Apa tujuan utama dari kaigo katei (proses perawatan)?",
+    opts: [
+      "利用者の個別のニーズに応じたケアプランを作成し、全体的な支援を行うこと / Menyusun rencana perawatan sesuai kebutuhan individual pengguna dan memberikan dukungan keseluruhan",
+      "利用者の個別のニーズに応じたケアプランを作成し、医療的な治療を中心とした支援を行うこと / Menyusun rencana perawatan sesuai kebutuhan individual pengguna dan memberikan dukungan yang berpusat pada pengobatan medis",
+      "利用者の個別のニーズに応じたケアプランを作成し、経済的な支援を中心とした援助を行うこと / Menyusun rencana perawatan sesuai kebutuhan individual pengguna dan memberikan bantuan yang berpusat pada dukungan ekonomi",
+      "利用者の個別のニーズに応じたケアプランを作成し、家族への支援を最優先に行うこと / Menyusun rencana perawatan sesuai kebutuhan individual pengguna dan memprioritaskan dukungan kepada keluarga",
+      "利用者の個別のニーズに応じたケアプランを作成し、施設運営の効率化を図ること / Menyusun rencana perawatan sesuai kebutuhan individual pengguna dan meningkatkan efisiensi operasional fasilitas"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護現場におけるチームアプローチの目的として最も適切なものはどれですか？",
+    sub: "Manakah tujuan yang paling tepat dari pendekatan tim di lingkungan perawatan?",
+    opts: [
+      "すべての介護職員が一つの目標に向かって協力することで、効率的なケアを提供すること / Semua petugas perawatan bekerja sama menuju satu tujuan untuk memberikan perawatan yang efisien",
+      "すべての介護職員がそれぞれの目標に向かって活動することで、多様なケアを提供すること / Semua petugas perawatan bekerja menuju tujuan masing-masing untuk memberikan perawatan yang beragam",
+      "一部の介護職員が中心となって目標を設定し、他の職員がそれに従うこと / Sebagian petugas perawatan menetapkan tujuan dan petugas lain mengikutinya",
+      "すべての介護職員が同じ業務を均等に分担することで、負担を分散すること / Semua petugas perawatan membagi tugas yang sama secara merata untuk mendistribusikan beban",
+      "すべての介護職員が利用者ごとに独立して判断し、連携を最小限にすること / Semua petugas perawatan mengambil keputusan secara independen per pengguna dan meminimalkan kerja sama"
+    ],
+    ans: 0
+  },
+  {
+    q: "地域包括支援センターの役割として最も適切なものはどれですか？",
+    sub: "Manakah peran yang paling tepat dari Pusat Dukungan Perawatan Terpadu Komunitas?",
+    opts: [
+      "高齢者の生活支援、介護、相談サービスを総合的に提供し、地域での生活を支える / Menyediakan dukungan kehidupan, perawatan, dan layanan konseling untuk lansia secara komprehensif untuk mendukung kehidupan mereka di komunitas",
+      "高齢者の生活支援、介護、相談サービスを個別に提供し、医療機関への紹介を中心に行う / Menyediakan dukungan kehidupan, perawatan, dan konseling secara terpisah, berpusat pada rujukan ke fasilitas medis",
+      "高齢者の生活支援、介護、相談サービスを総合的に提供し、施設への入所を優先的に進める / Menyediakan layanan secara komprehensif dan memprioritaskan masuk ke fasilitas",
+      "高齢者の生活支援、介護、相談サービスを総合的に提供し、家族の負担軽減を最優先する / Menyediakan layanan secara komprehensif dan memprioritaskan pengurangan beban keluarga",
+      "高齢者の生活支援、介護、相談サービスを総合的に提供し、介護保険の適用確認のみを行う / Menyediakan layanan secara komprehensif dan hanya memeriksa penerapan asuransi perawatan"
+    ],
+    ans: 0
+  },
+  {
+    q: "「尊厳のある暮らし」として最も適切な説明はどれですか？",
+    sub: "Manakah penjelasan yang paling tepat mengenai kehidupan yang bermartabat?",
+    opts: [
+      "自分らしい生活を維持し、必要な支援を受けながら、尊厳を保つ生活を送ること / Menjaga kehidupan yang sesuai dengan diri sendiri, menerima dukungan yang diperlukan, dan hidup dengan martabat",
+      "自分らしい生活を維持し、必要な支援をできるだけ受けずに、自立を保つ生活を送ること / Menjaga kehidupan sesuai diri sendiri dan berusaha tidak menerima dukungan agar tetap mandiri",
+      "自分らしい生活を維持し、周囲の意見に従いながら、安全を保つ生活を送ること / Menjaga kehidupan sesuai diri sendiri sambil mengikuti pendapat sekitar demi keamanan",
+      "自分らしい生活を維持し、家族の判断に委ねながら、安定を保つ生活を送ること / Menjaga kehidupan sesuai diri sendiri sambil menyerahkan keputusan kepada keluarga demi stabilitas",
+      "自分らしい生活を維持し、施設の方針に従いながら、秩序を保つ生活を送ること / Menjaga kehidupan sesuai diri sendiri sambil mengikuti kebijakan fasilitas demi ketertiban"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護職に求められる価値観として最も適切なものはどれですか？",
+    sub: "Manakah nilai yang paling tepat yang dibutuhkan oleh tenaga perawatan?",
+    opts: [
+      "利用者の尊厳を守り、できる限り自立支援を行うこと / Melindungi martabat pengguna dan memberikan dukungan untuk kemandirian mereka sebisa mungkin",
+      "利用者の尊厳を守り、できる限り安全支援を行うこと / Melindungi martabat pengguna dan memberikan dukungan keselamatan sebisa mungkin",
+      "利用者の尊厳を守り、できる限り家族支援を行うこと / Melindungi martabat pengguna dan memberikan dukungan kepada keluarga sebisa mungkin",
+      "利用者の尊厳を守り、できる限り効率支援を行うこと / Melindungi martabat pengguna dan memberikan dukungan efisiensi sebisa mungkin",
+      "利用者の尊厳を守り、できる限り医療支援を行うこと / Melindungi martabat pengguna dan memberikan dukungan medis sebisa mungkin"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護現場における個人情報の取り扱いとして、最も適切な対応はどれですか？",
+    sub: "Manakah penanganan informasi pribadi yang paling tepat dalam lingkungan perawatan?",
+    opts: [
+      "利用者の個人情報は、必要最小限の関係者にのみ提供し、機密を守る / Memberikan informasi pribadi pengguna hanya kepada pihak terkait yang diperlukan dan menjaga kerahasiaannya",
+      "利用者の個人情報は、必要最小限の関係者にのみ提供し、共有を避ける / Memberikan informasi hanya kepada pihak terkait yang diperlukan dan menghindari berbagi",
+      "利用者の個人情報は、必要最小限の関係者にのみ提供し、記録を残さない / Memberikan informasi hanya kepada pihak terkait yang diperlukan dan tidak meninggalkan catatan",
+      "利用者の個人情報は、必要最小限の関係者にのみ提供し、口頭で伝える / Memberikan informasi hanya kepada pihak terkait yang diperlukan dan menyampaikannya secara lisan",
+      "利用者の個人情報は、必要最小限の関係者にのみ提供し、定期的に破棄する / Memberikan informasi hanya kepada pihak terkait yang diperlukan dan memusnahkannya secara berkala"
+    ],
+    ans: 0
+  },
+  {
+    q: "QOL（生活の質）の説明として最も適切なものはどれですか？",
+    sub: "Manakah penjelasan yang paling tepat mengenai QOL (Kualitas Hidup)?",
+    opts: [
+      "QOLは身体的、精神的、社会的な側面を総合的に評価する生活の質を指す / QOL merujuk pada kualitas hidup yang dinilai secara komprehensif berdasarkan aspek fisik, mental, dan sosial",
+      "QOLは身体的、精神的、経済的な側面を総合的に評価する生活の質を指す / QOL merujuk pada kualitas hidup yang dinilai secara komprehensif berdasarkan aspek fisik, mental, dan ekonomi",
+      "QOLは身体的、社会的、経済的な側面を総合的に評価する生活の質を指す / QOL merujuk pada kualitas hidup yang dinilai secara komprehensif berdasarkan aspek fisik, sosial, dan ekonomi",
+      "QOLは精神的、社会的、文化的な側面を総合的に評価する生活の質を指す / QOL merujuk pada kualitas hidup yang dinilai secara komprehensif berdasarkan aspek mental, sosial, dan budaya",
+      "QOLは身体的、精神的、環境的な側面を総合的に評価する生活の質を指す / QOL merujuk pada kualitas hidup yang dinilai secara komprehensif berdasarkan aspek fisik, mental, dan lingkungan"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護職で過労が起きやすい理由として最も適切なものはどれですか？",
+    sub: "Manakah alasan yang paling tepat mengapa kelelahan mudah terjadi dalam pekerjaan perawatan?",
+    opts: [
+      "介護職は多くの利用者と関わり、業務が多岐にわたるため / Pekerjaan perawatan melibatkan banyak pengguna dan berbagai macam tugas",
+      "介護職は多くの利用者と関わり、業務が単調になりやすいため / Pekerjaan perawatan melibatkan banyak pengguna dan tugasnya cenderung monoton",
+      "介護職は少人数の利用者と関わり、業務が多岐にわたるため / Pekerjaan perawatan melibatkan sedikit pengguna dan berbagai macam tugas",
+      "介護職は多くの利用者と関わり、業務が短時間で終わるため / Pekerjaan perawatan melibatkan banyak pengguna dan tugas selesai dalam waktu singkat",
+      "介護職は多くの利用者と関わり、業務の分担が明確なため / Pekerjaan perawatan melibatkan banyak pengguna dan pembagian tugasnya jelas"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護における「残存機能の活用」とは、どのような取り組みですか？",
+    sub: "Apa pendekatan yang paling tepat terkait dengan 'Pemanfaatan Fungsi yang Tersisa' dalam perawatan?",
+    opts: [
+      "利用者の残っている機能を最大限に活用し、必要な支援を行う / Memanfaatkan fungsi yang tersisa dari pengguna secara maksimal sambil memberikan dukungan yang diperlukan",
+      "利用者の残っている機能を最大限に活用し、支援を最小限にする / Memanfaatkan fungsi tersisa secara maksimal dan meminimalkan dukungan",
+      "利用者の残っている機能を最大限に活用し、機能の回復を優先する / Memanfaatkan fungsi tersisa secara maksimal dan memprioritaskan pemulihan fungsi",
+      "利用者の残っている機能を最大限に活用し、自立を強制する / Memanfaatkan fungsi tersisa secara maksimal dan memaksakan kemandirian",
+      "利用者の残っている機能を最大限に活用し、介護者主導で進める / Memanfaatkan fungsi tersisa secara maksimal dan dipimpin oleh pengasuh"
+    ],
+    ans: 0
+  },
+  {
+    q: "職業倫理の意義において最も重要な要素はどれですか？",
+    sub: "Manakah elemen yang paling penting dalam makna etika profesi?",
+    opts: [
+      "利用者の尊厳を守り、倫理的な行動を徹底すること / Menjaga martabat pengguna dan bertindak secara etis",
+      "利用者の尊厳を守り、効率的な行動を徹底すること / Menjaga martabat pengguna dan bertindak secara efisien",
+      "利用者の尊厳を守り、感情的な行動を徹底すること / Menjaga martabat pengguna dan bertindak secara emosional",
+      "利用者の尊厳を守り、指示的な行動を徹底すること / Menjaga martabat pengguna dan bertindak secara instruktif",
+      "利用者の尊厳を守り、管理的な行動を徹底すること / Menjaga martabat pengguna dan bertindak secara manajerial"
+    ],
+    ans: 0
+  },
+  {
+    q: "リスクマネジメントの必要性として最も重要な要素はどれですか？",
+    sub: "Manakah elemen yang paling penting dalam pentingnya manajemen risiko?",
+    opts: [
+      "利用者や職員の安全を確保し、予防策を講じること / Menjamin keselamatan pengguna dan staf serta mengambil langkah pencegahan",
+      "利用者や職員の安全を確保し、事後対応を講じること / Menjamin keselamatan pengguna dan staf serta mengambil tindakan setelah kejadian",
+      "利用者や職員の安全を確保し、記録を徹底すること / Menjamin keselamatan pengguna dan staf serta memastikan pencatatan",
+      "利用者や職員の安全を確保し、研修を徹底すること / Menjamin keselamatan pengguna dan staf serta memastikan pelatihan",
+      "利用者や職員の安全を確保し、報告を徹底すること / Menjamin keselamatan pengguna dan staf serta memastikan pelaporan"
+    ],
+    ans: 0
+  },
+  {
+    q: "ケアプラン（介護サービス計画書）について正しい説明はどれですか？",
+    sub: "Manakah pernyataan yang benar mengenai Care Plan (Rencana Layanan Perawatan)?",
+    opts: [
+      "ケアプランは利用者のニーズや目標を元に、関係者と協力して作成し、定期的に見直される / Rencana perawatan disusun berdasarkan kebutuhan dan tujuan pengguna dengan kerjasama pihak terkait dan ditinjau secara berkala",
+      "ケアプランは利用者のニーズや目標を元に、関係者と協力して作成し、一度作成したら見直さない / Disusun bersama pihak terkait berdasarkan kebutuhan pengguna dan tidak ditinjau setelah dibuat",
+      "ケアプランは施設の方針を元に、関係者と協力して作成し、定期的に見直される / Disusun bersama pihak terkait berdasarkan kebijakan fasilitas dan ditinjau secara berkala",
+      "ケアプランは家族の希望を元に、関係者と協力して作成し、定期的に見直される / Disusun bersama pihak terkait berdasarkan keinginan keluarga dan ditinjau secara berkala",
+      "ケアプランは医師の判断を元に、関係者と協力して作成し、定期的に見直される / Disusun bersama pihak terkait berdasarkan penilaian dokter dan ditinjau secara berkala"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護や医療分野における「カンファレンス」の主な目的として最も適切なものはどれですか？",
+    sub: "Manakah tujuan utama dari 'Konferensi' dalam bidang perawatan dan medis?",
+    opts: [
+      "利用者のケアに関する情報を共有し、チーム全体で支援方法を決定すること / Berbagi informasi terkait perawatan pengguna dan menentukan metode dukungan secara bersama-sama dalam tim",
+      "利用者のケアに関する情報を共有し、リーダーが支援方法を決定すること / Berbagi informasi perawatan dan pemimpin tim yang menentukan metode dukungan",
+      "利用者のケアに関する情報を共有し、家族が支援方法を決定すること / Berbagi informasi perawatan dan keluarga yang menentukan metode dukungan",
+      "利用者のケアに関する情報を共有し、医師が支援方法を決定すること / Berbagi informasi perawatan dan dokter yang menentukan metode dukungan",
+      "利用者のケアに関する情報を共有し、各職員が個別に支援方法を決定すること / Berbagi informasi perawatan dan setiap staf menentukan metode dukungan sendiri"
+    ],
+    ans: 0
+  },
+  {
+    q: "「高齢化」とはどういう状態を指しますか？",
+    sub: "Apa yang dimaksud dengan 'Penuaan'?",
+    opts: [
+      "高齢者の割合が増加し、社会全体の構造が変化する状態 / Keadaan di mana proporsi lansia meningkat dan struktur masyarakat secara keseluruhan berubah",
+      "高齢者の割合が増加し、社会全体の負担が軽減する状態 / Keadaan di mana proporsi lansia meningkat dan beban masyarakat berkurang",
+      "高齢者の割合が増加し、若年層の割合も増加する状態 / Keadaan di mana proporsi lansia meningkat dan proporsi anak muda juga meningkat",
+      "高齢者の割合が増加し、平均寿命が短くなる状態 / Keadaan di mana proporsi lansia meningkat dan harapan hidup menurun",
+      "高齢者の割合が増加し、社会保障が不要になる状態 / Keadaan di mana proporsi lansia meningkat dan jaminan sosial tidak diperlukan"
+    ],
+    ans: 0
+  },
+  {
+    q: "「社会的入院」とはどのような状態を指しますか？",
+    sub: "Apa yang dimaksud dengan 'Rawat Inap Sosial'?",
+    opts: [
+      "病院に入院する必要がなくなったが、家族のサポート不足など社会的な理由で入院が続く状態 / Keadaan di mana seseorang tidak lagi memerlukan perawatan di rumah sakit, tetapi tetap dirawat karena kurangnya dukungan keluarga atau alasan sosial lainnya",
+      "病院に入院する必要がなくなったが、本人の希望により入院が続く状態 / Keadaan di mana seseorang tidak lagi memerlukan rawat inap, tetapi tetap dirawat karena keinginan sendiri",
+      "病院に入院する必要がなくなったが、医師の判断により入院が続く状態 / Keadaan di mana seseorang tidak lagi memerlukan rawat inap, tetapi tetap dirawat karena penilaian dokter",
+      "病院に入院する必要がなくなったが、施設の空きがないため入院が続く状態 / Keadaan di mana seseorang tidak lagi memerlukan rawat inap, tetapi tetap dirawat karena fasilitas penuh",
+      "病院に入院する必要がなくなったが、経済的な理由により入院が続く状態 / Keadaan di mana seseorang tidak lagi memerlukan rawat inap, tetapi tetap dirawat karena alasan ekonomi"
+    ],
+    ans: 0
+  },
+  {
+    q: "要介護認定制度について最も適切な説明はどれですか？",
+    sub: "Manakah penjelasan yang paling tepat mengenai sistem penilaian kebutuhan perawatan?",
+    opts: [
+      "要介護認定は、市町村が実施し、介護の必要度を評価し、介護サービスの利用に繋がる / Penilaian dilakukan oleh pemerintah lokal, menilai tingkat kebutuhan perawatan dan mengarah pada penggunaan layanan perawatan",
+      "要介護認定は、市町村が実施し、介護の必要度を評価し、医療サービスの利用に繋がる / Penilaian dilakukan pemerintah lokal, menilai tingkat kebutuhan dan mengarah pada penggunaan layanan medis",
+      "要介護認定は、都道府県が実施し、介護の必要度を評価し、介護サービスの利用に繋がる / Penilaian dilakukan pemerintah prefektur, menilai tingkat kebutuhan dan mengarah pada layanan perawatan",
+      "要介護認定は、医療機関が実施し、介護の必要度を評価し、介護サービスの利用に繋がる / Penilaian dilakukan fasilitas medis, menilai tingkat kebutuhan dan mengarah pada layanan perawatan",
+      "要介護認定は、家族が実施し、介護の必要度を評価し、介護サービスの利用に繋がる / Penilaian dilakukan keluarga, menilai tingkat kebutuhan dan mengarah pada layanan perawatan"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護保険者（市区町村）の義務として正しいものはどれですか？",
+    sub: "Apa kewajiban penanggung asuransi KAIGO (pemerintah kota/kabupaten)?",
+    opts: [
+      "介護保険の適用を決定し、必要なサービスの提供を確保すること / Menentukan penerapan asuransi perawatan dan memastikan penyediaan layanan yang diperlukan",
+      "介護保険の適用を決定し、必要なサービスの料金を無料にすること / Menentukan penerapan asuransi dan menjadikan layanan yang diperlukan gratis",
+      "介護保険の適用を決定し、必要なサービスの対象者を限定すること / Menentukan penerapan asuransi dan membatasi penerima layanan yang diperlukan",
+      "介護保険の適用を決定し、必要なサービスの提供者を選定すること / Menentukan penerapan asuransi dan memilih penyedia layanan yang diperlukan",
+      "介護保険の適用を決定し、必要なサービスの内容を変更すること / Menentukan penerapan asuransi dan mengubah isi layanan yang diperlukan"
+    ],
+    ans: 0
+  },
+  {
+    q: "リハビリテーションの目的として最も適切なものはどれですか？",
+    sub: "Apa tujuan yang paling tepat dari rehabilitasi?",
+    opts: [
+      "利用者ができる限り自立した生活を送るために支援すること / Membantu pengguna untuk menjalani kehidupan mandiri sebisa mungkin",
+      "利用者ができる限り施設での生活に慣れるために支援すること / Membantu pengguna agar terbiasa hidup di fasilitas sebisa mungkin",
+      "利用者ができる限り家族と過ごす時間を増やすために支援すること / Membantu pengguna agar lebih banyak menghabiskan waktu dengan keluarga",
+      "利用者ができる限り医療機関を受診するために支援すること / Membantu pengguna agar lebih sering mengunjungi fasilitas medis",
+      "利用者ができる限り介護サービスを利用するために支援すること / Membantu pengguna agar lebih banyak menggunakan layanan perawatan"
+    ],
+    ans: 0
+  },
+  {
+    q: "障害者福祉制度の基本的な考え方として正しいものはどれですか？",
+    sub: "Apa prinsip dasar dari sistem kesejahteraan penyandang disabilitas di Jepang?",
+    opts: [
+      "障害を持つ人々が自立した生活を送るための支援を行い、社会参加を促進すること / Memberikan dukungan agar penyandang disabilitas dapat menjalani kehidupan mandiri dan mendorong partisipasi sosial",
+      "障害を持つ人々が自立した生活を送るための支援を行い、施設入所を促進すること / Memberikan dukungan agar hidup mandiri dan mendorong masuk ke fasilitas",
+      "障害を持つ人々が自立した生活を送るための支援を行い、家族介護を促進すること / Memberikan dukungan agar hidup mandiri dan mendorong perawatan oleh keluarga",
+      "障害を持つ人々が自立した生活を送るための支援を行い、医療的ケアを促進すること / Memberikan dukungan agar hidup mandiri dan mendorong perawatan medis",
+      "障害を持つ人々が自立した生活を送るための支援を行い、経済的自立を促進すること / Memberikan dukungan agar hidup mandiri dan mendorong kemandirian ekonomi"
+    ],
+    ans: 0
+  },
+  {
+    q: "障害者総合支援法の目的として正しいものはどれですか？",
+    sub: "Manakah tujuan yang benar dari Undang-Undang Dukungan Komprehensif Penyandang Disabilitas?",
+    opts: [
+      "障害者が地域で自立した生活を送るための支援を行うこと / Memberikan dukungan agar penyandang disabilitas dapat menjalani kehidupan mandiri di komunitas",
+      "障害者が施設で安定した生活を送るための支援を行うこと / Memberikan dukungan agar penyandang disabilitas dapat menjalani kehidupan stabil di fasilitas",
+      "障害者が家庭で家族と生活するための支援を行うこと / Memberikan dukungan agar penyandang disabilitas dapat hidup bersama keluarga di rumah",
+      "障害者が医療機関で治療を受けるための支援を行うこと / Memberikan dukungan agar penyandang disabilitas dapat berobat di fasilitas medis",
+      "障害者が経済的に自立するための支援を行うこと / Memberikan dukungan agar penyandang disabilitas dapat mandiri secara ekonomi"
+    ],
+    ans: 0
+  },
+  {
+    q: "成年後見制度の目的として正しいものはどれですか？",
+    sub: "Manakah tujuan yang benar dari sistem perwalian dewasa?",
+    opts: [
+      "成年後見制度は、成年者の権利を保護し、自己決定を尊重することを目的とする / Sistem perwalian dewasa bertujuan untuk melindungi hak-hak orang dewasa dan menghormati keputusan diri mereka",
+      "成年後見制度は、成年者の権利を保護し、家族の決定を尊重することを目的とする / Bertujuan melindungi hak orang dewasa dan menghormati keputusan keluarga",
+      "成年後見制度は、成年者の財産を保護し、自己決定を尊重することを目的とする / Bertujuan melindungi harta orang dewasa dan menghormati keputusan diri mereka",
+      "成年後見制度は、成年者の権利を保護し、施設の決定を尊重することを目的とする / Bertujuan melindungi hak orang dewasa dan menghormati keputusan fasilitas",
+      "成年後見制度は、成年者の権利を制限し、代理決定を推進することを目的とする / Bertujuan membatasi hak orang dewasa dan mendorong keputusan pengganti"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護においてコミュニケーションが重要とされる理由は何ですか？",
+    sub: "Mengapa komunikasi sangat penting dalam perawatan?",
+    opts: [
+      "利用者のニーズや状態を正確に把握し、適切な支援を行うため / Untuk memahami kebutuhan dan kondisi pengguna dengan akurat serta memberikan dukungan yang tepat",
+      "利用者のニーズや状態を正確に把握し、効率的な支援を行うため / Untuk memahami kebutuhan dan kondisi pengguna secara akurat serta memberikan dukungan yang efisien",
+      "利用者のニーズや状態を正確に把握し、画一的な支援を行うため / Untuk memahami kebutuhan dan kondisi pengguna secara akurat serta memberikan dukungan yang seragam",
+      "利用者のニーズや状態を正確に把握し、家族への報告を行うため / Untuk memahami kebutuhan dan kondisi pengguna secara akurat serta melaporkannya kepada keluarga",
+      "利用者のニーズや状態を正確に把握し、記録を充実させるため / Untuk memahami kebutuhan dan kondisi pengguna secara akurat serta melengkapi catatan"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護における「共感」の意味として最も適切なものはどれですか？",
+    sub: "Manakah yang paling tepat mengenai arti dari 'Empati' dalam perawatan?",
+    opts: [
+      "利用者の感情に共鳴し、その立場に立って支援を行うこと / Merasakan perasaan pengguna dan memberikan dukungan dengan menempatkan diri pada posisi mereka",
+      "利用者の感情に共鳴し、その感情を修正するように支援を行うこと / Merasakan perasaan pengguna dan memberikan dukungan untuk memperbaiki perasaan tersebut",
+      "利用者の感情に共鳴し、その感情を無視して支援を行うこと / Merasakan perasaan pengguna tetapi mengabaikannya saat memberikan dukungan",
+      "利用者の感情に共鳴し、その感情を記録して支援を行うこと / Merasakan perasaan pengguna dan mencatatnya saat memberikan dukungan",
+      "利用者の感情に共鳴し、その感情に従って方針を決定すること / Merasakan perasaan pengguna dan menentukan kebijakan berdasarkan perasaan tersebut"
+    ],
+    ans: 0
+  },
+  {
+    q: "QOL（生活の質）において最も重視される概念はどれですか？",
+    sub: "Manakah konsep yang paling ditekankan dalam QOL (Quality of Life)?",
+    opts: [
+      "身体的・精神的・社会的側面を総合的に満たすことを目指すこと / Bertujuan untuk memenuhi aspek fisik, mental, dan sosial secara menyeluruh",
+      "身体的・精神的・経済的側面を総合的に満たすことを目指すこと / Bertujuan memenuhi aspek fisik, mental, dan ekonomi secara menyeluruh",
+      "身体的・社会的・経済的側面を総合的に満たすことを目指すこと / Bertujuan memenuhi aspek fisik, sosial, dan ekonomi secara menyeluruh",
+      "精神的・社会的・文化的側面を総合的に満たすことを目指すこと / Bertujuan memenuhi aspek mental, sosial, dan budaya secara menyeluruh",
+      "身体的・精神的・環境的側面を総合的に満たすことを目指すこと / Bertujuan memenuhi aspek fisik, mental, dan lingkungan secara menyeluruh"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護記録の意義として最も適切なものはどれですか？",
+    sub: "Apa tujuan yang paling tepat dari pencatatan perawatan?",
+    opts: [
+      "利用者の状態やケア内容を正確に記録し、継続的なケアの質を確保すること / Mencatat dengan akurat kondisi pengguna dan perawatan yang diberikan untuk memastikan kualitas perawatan yang berkelanjutan",
+      "利用者の状態やケア内容を正確に記録し、職員間の情報共有を確保すること / Mencatat kondisi dan perawatan secara akurat untuk memastikan berbagi informasi antar staf",
+      "利用者の状態やケア内容を正確に記録し、家族への説明責任を確保すること / Mencatat kondisi dan perawatan secara akurat untuk memastikan tanggung jawab kepada keluarga",
+      "利用者の状態やケア内容を正確に記録し、施設の方針を確保すること / Mencatat kondisi dan perawatan secara akurat untuk memastikan kebijakan fasilitas",
+      "利用者の状態やケア内容を正確に記録し、医療機関への報告を確保すること / Mencatat kondisi dan perawatan secara akurat untuk memastikan pelaporan ke fasilitas medis"
+    ],
+    ans: 0
+  },
+  {
+    q: "介護記録を書くときに考慮すべき表現はどれですか？",
+    sub: "Kata-kata apa yang harus diperhatikan saat menulis catatan keperawatan?",
+    opts: [
+      "客観的な事実を基に記録すること / Mencatat berdasarkan fakta objektif",
+      "主観的な印象を基に記録すること / Mencatat berdasarkan kesan subjektif",
+      "利用者の希望を基に記録すること / Mencatat berdasarkan harapan pengguna",
+      "家族の意見を基に記録すること / Mencatat berdasarkan pendapat keluarga",
+      "職員の推測を基に記録すること / Mencatat berdasarkan dugaan staf"
+    ],
+    ans: 0
+  },
+  {
+    q: "健康寿命としての説明　正しい説明はどれですか？",
+    sub: "Manakah penjelasan yang benar mengenai harapan hidup sehat?",
+    opts: [
+      "健康寿命は、介護が必要なく、自立した生活ができる期間を指す / Harapan hidup sehat merujuk pada periode di mana seseorang dapat hidup mandiri tanpa memerlukan perawatan",
+      "健康寿命は、病気の治療を終え、自立した生活ができる期間を指す / Merujuk pada periode setelah pengobatan selesai dan dapat hidup mandiri",
+      "健康寿命は、介護が必要なく、社会参加ができる期間を指す / Merujuk pada periode tanpa perawatan dan dapat berpartisipasi sosial",
+      "健康寿命は、病気の診断を受けず、自立した生活ができる期間を指す / Merujuk pada periode tanpa diagnosis penyakit dan dapat hidup mandiri",
+      "健康寿命は、介護が必要なく、医療機関に通わずに生活できる期間を指す / Merujuk pada periode tanpa perawatan dan tanpa kunjungan ke fasilitas medis"
+    ],
+    ans: 0
+  },
+  {
+    q: "一般的に期待される入浴の効果として正しいものはどれですか？",
+    sub: "Manakah efek mandi yang umumnya diharapkan?",
+    opts: [
+      "血行促進による疲労回復やリラクゼーション効果 / Pemulihan kelelahan dan efek relaksasi melalui peningkatan sirkulasi darah",
+      "血行促進による疲労回復や覚醒効果 / Pemulihan kelelahan dan efek kebugaran melalui peningkatan sirkulasi darah",
+      "血行抑制による疲労回復やリラクゼーション効果 / Pemulihan kelelahan dan efek relaksasi melalui penekanan sirkulasi darah",
+      "血行促進による消化不良の改善効果 / Perbaikan gangguan pencernaan melalui peningkatan sirkulasi darah",
+      "血行促進による筋力増強効果 / Peningkatan kekuatan otot melalui peningkatan sirkulasi darah"
+    ],
+    ans: 0
+  },
+  {
+    q: "認知症ケアの最も重要な理念の一つは、何ですか？",
+    sub: "Apa salah satu prinsip yang paling penting dalam perawatan demensia?",
+    opts: [
+      "利用者の尊厳を守り、本人らしい生活を支援すること / Menjaga martabat pengguna dan mendukung kehidupan sesuai dengan keinginan mereka",
+      "利用者の尊厳を守り、安全な生活を支援すること / Menjaga martabat pengguna dan mendukung kehidupan yang aman",
+      "利用者の尊厳を守り、規則正しい生活を支援すること / Menjaga martabat pengguna dan mendukung kehidupan yang teratur",
+      "利用者の尊厳を守り、家族と過ごす生活を支援すること / Menjaga martabat pengguna dan mendukung kehidupan bersama keluarga",
+      "利用者の尊厳を守り、施設での生活を支援すること / Menjaga martabat pengguna dan mendukung kehidupan di fasilitas"
+    ],
+    ans: 0
+  },
+  {
+    q: "認知症ケアでは「失敗を許さない視点」ではなく、どのような視点が大切とされていますか？",
+    sub: "Dalam perawatan demensia, perspektif yang penting bukanlah 'perspektif yang tidak mentolerir kegagalan', tetapi perspektif yang mana?",
+    opts: [
+      "利用者を尊重し、失敗を含めた経験から学び成長する視点 / Perspektif yang menghormati pengguna dan belajar serta berkembang dari pengalaman, termasuk kegagalan",
+      "利用者を尊重し、失敗を繰り返さないように管理する視点 / Perspektif yang menghormati pengguna dan mengelola agar kegagalan tidak terulang",
+      "利用者を尊重し、失敗を最小限に抑える視点 / Perspektif yang menghormati pengguna dan meminimalkan kegagalan",
+      "利用者を尊重し、失敗を記録して報告する視点 / Perspektif yang menghormati pengguna dan mencatat serta melaporkan kegagalan",
+      "利用者を尊重し、失敗を家族に説明する視点 / Perspektif yang menghormati pengguna dan menjelaskan kegagalan kepada keluarga"
+    ],
+    ans: 0
+  },
+  {
+    q: "入浴による精神面への主な影響として正しいものはどれですか？",
+    sub: "Apa pengaruh utama mandi terhadap aspek psikologis?",
+    opts: [
+      "リラクゼーション効果を促進し精神的緊張を緩和すること / Meningkatkan efek relaksasi dan mengurangi ketegangan mental",
+      "リラクゼーション効果を促進し身体的な疲労を増加させること / Meningkatkan efek relaksasi dan menambah kelelahan fisik",
+      "覚醒効果を促進し精神的緊張を緩和すること / Meningkatkan efek kebugaran dan mengurangi ketegangan mental",
+      "リラクゼーション効果を抑制し精神的緊張を高めること / Menekan efek relaksasi dan meningkatkan ketegangan mental",
+      "リラクゼーション効果を促進し注意力を低下させること / Meningkatkan efek relaksasi dan menurunkan perhatian"
+    ],
+    ans: 0
+  },
+  {
+    q: "認知症におけるBPSD（行動・心理症状）とは、どのような症状を指しますか？",
+    sub: "Apa yang dimaksud dengan BPSD (gejala perilaku dan psikologis) pada demensia?",
+    opts: [
+      "幻覚、妄想、不安、興奮、抑うつなどの行動・心理的変化 / Perubahan perilaku dan psikologis seperti halusinasi, delusi, kecemasan, agitasi, dan depresi",
+      "幻覚、妄想、不安、興奮、抑うつなどの身体機能的変化 / Perubahan fungsi fisik seperti halusinasi, delusi, kecemasan, agitasi, dan depresi",
+      "幻覚、妄想、不安、興奮、抑うつなどの感覚器的変化 / Perubahan organ sensorik seperti halusinasi, delusi, kecemasan, agitasi, dan depresi",
+      "幻覚、妄想、不安、興奮、抑うつなどの自律神経的変化 / Perubahan saraf otonom seperti halusinasi, delusi, kecemasan, agitasi, dan depresi",
+      "幻覚、妄想、不安、興奮、抑うつなどの記憶力的変化 / Perubahan memori seperti halusinasi, delusi, kecemasan, agitasi, dan depresi"
+    ],
+    ans: 0
+  },
+  {
+    q: "「もの盗られ妄想」とは、BPSDのどのような症状ですか？",
+    sub: "Apa yang dimaksud dengan delusi 'barang dicuri' dalam gejala BPSD?",
+    opts: [
+      "自分の持ち物が盗まれたと誤って確信する症状 / Gejala berupa keyakinan keliru bahwa barang miliknya telah dicuri",
+      "自分の持ち物が壊れたと誤って確信する症状 / Gejala berupa keyakinan keliru bahwa barang miliknya telah rusak",
+      "自分の持ち物が捨てられたと誤って確信する症状 / Gejala berupa keyakinan keliru bahwa barang miliknya telah dibuang",
+      "自分の持ち物が増えたと誤って確信する症状 / Gejala berupa keyakinan keliru bahwa barang miliknya bertambah",
+      "自分の持ち物が変わったと誤って確信する症状 / Gejala berupa keyakinan keliru bahwa barang miliknya telah berubah"
+    ],
+    ans: 0
+  },
+  {
+    q: "視力障害の特徴として最も適切なものはどれですか？",
+    sub: "Manakah ciri paling tepat dari gangguan penglihatan?",
+    opts: [
+      "視覚情報の取得や処理に制限が生じ、生活行動に影響を及ぼす状態 / Kondisi di mana terdapat batasan dalam memperoleh dan memproses informasi visual, mempengaruhi aktivitas kehidupan",
+      "視覚情報の取得や処理に制限が生じ、聴覚行動に影響を及ぼす状態 / Kondisi dengan batasan memperoleh informasi visual yang mempengaruhi aktivitas pendengaran",
+      "視覚情報の取得や処理に制限が生じ、言語行動に影響を及ぼす状態 / Kondisi dengan batasan memperoleh informasi visual yang mempengaruhi aktivitas bahasa",
+      "視覚情報の取得や処理に制限が生じ、運動行動に影響を及ぼす状態 / Kondisi dengan batasan memperoleh informasi visual yang mempengaruhi aktivitas motorik",
+      "視覚情報の取得や処理に制限が生じ、感情行動に影響を及ぼす状態 / Kondisi dengan batasan memperoleh informasi visual yang mempengaruhi aktivitas emosional"
+    ],
+    ans: 0
+  },
+  {
+    q: "言語障害における主な問題点はどれですか？",
+    sub: "Apa masalah utama dalam gangguan bahasa?",
+    opts: [
+      "言葉の理解、表現、構成に関わる能力に障害が生じること / Terjadinya gangguan dalam kemampuan memahami, mengekspresikan, dan membentuk bahasa",
+      "言葉の理解、表現、構成に関わる能力は保たれるが、聴覚情報の受信に障害が生じること / Kemampuan bahasa terjaga, tetapi terjadi gangguan dalam menerima informasi pendengaran",
+      "言葉の理解、表現、構成に関わる能力は保たれるが、視覚情報の処理に障害が生じること / Kemampuan bahasa terjaga, tetapi terjadi gangguan dalam memproses informasi visual",
+      "言葉の理解、表現、構成に関わる能力は保たれるが、身体運動の調整に障害が生じること / Kemampuan bahasa terjaga, tetapi terjadi gangguan dalam koordinasi gerakan tubuh",
+      "言葉の理解、表現、構成に関わる能力は保たれるが、感情の制御に障害が生じること / Kemampuan bahasa terjaga, tetapi terjadi gangguan dalam kontrol emosi"
+    ],
+    ans: 0
+  },
+  {
+    q: "高齢になると味覚に変化が起きやすいのかの医学的説明として最も適切なものはどれですか？",
+    sub: "Apa penjelasan medis yang paling tepat terkait dengan perubahan rasa pada lansia?",
+    opts: [
+      "高齢者では味覚が鈍くなり、食べ物の味が感じにくくなることがある / Pada lansia, indera rasa menjadi tumpul, dan kadang-kadang rasa makanan menjadi sulit dirasakan",
+      "高齢者では味覚が鈍くなり、食べ物の味が濃く感じられることがある / Pada lansia, indera rasa menumpul dan rasa makanan terasa lebih kuat",
+      "高齢者では味覚が敏感になり、食べ物の味が感じにくくなることがある / Pada lansia, indera rasa menjadi sensitif dan rasa makanan sulit dirasakan",
+      "高齢者では味覚が鈍くなり、食べ物の匂いが感じにくくなることがある / Pada lansia, indera rasa menumpul dan aroma makanan sulit dirasakan",
+      "高齢者では味覚が変化し、甘味だけが感じにくくなることがある / Pada lansia, indera rasa berubah dan hanya rasa manis yang sulit dirasakan"
+    ],
+    ans: 0
+  },
+  {
+    q: "高齢者の咀嚼力が落ちるのはなぜですか？",
+    sub: "Mengapa kemampuan mengunyah pada lansia menurun?",
+    opts: [
+      "高齢者では歯の喪失や咀嚼筋の衰えが原因で咀嚼力が低下する / Lansia mengalami penurunan kemampuan mengunyah karena kehilangan gigi dan pelemahan otot pengunyah",
+      "高齢者では歯の喪失や唾液の増加が原因で咀嚼力が低下する / Lansia mengalami penurunan mengunyah karena kehilangan gigi dan peningkatan air liur",
+      "高齢者では歯の増加や咀嚼筋の衰えが原因で咀嚼力が低下する / Lansia mengalami penurunan mengunyah karena pertambahan gigi dan pelemahan otot",
+      "高齢者では歯の喪失や咀嚼筋の強化が原因で咀嚼力が低下する / Lansia mengalami penurunan mengunyah karena kehilangan gigi dan penguatan otot",
+      "高齢者では歯の喪失や顎関節の拡大が原因で咀嚼力が低下する / Lansia mengalami penurunan mengunyah karena kehilangan gigi dan pembesaran sendi rahang"
+    ],
+    ans: 0
+  },
+  {
+    q: "高齢になると血管にはどのような変化が起きやすいですか？",
+    sub: "Perubahan apa yang sering terjadi pada pembuluh darah seiring bertambahnya usia?",
+    opts: [
+      "血管が硬くなり、弾力性が低下すること / Pembuluh darah menjadi keras dan kehilangan elastisitasnya",
+      "血管が硬くなり、弾力性が増加すること / Pembuluh darah mengeras dan elastisitasnya meningkat",
+      "血管が柔らかくなり、弾力性が低下すること / Pembuluh darah menjadi lunak dan elastisitasnya menurun",
+      "血管が硬くなり、血流が増加すること / Pembuluh darah mengeras dan aliran darah meningkat",
+      "血管が硬くなり、血管壁が薄くなること / Pembuluh darah mengeras dan dindingnya menipis"
+    ],
+    ans: 0
+  },
+  {
+    q: "高齢になると骨にはどのような変化が起こりますか？",
+    sub: "Perubahan apa yang terjadi pada tulang seiring bertambahnya usia?",
+    opts: [
+      "骨密度が低下し、骨が脆くなりやすくなる / Kepadatan tulang menurun, membuat tulang menjadi lebih rapuh",
+      "骨密度が低下し、骨が柔らかかくなりやすくなる / Kepadatan tulang menurun, membuat tulang menjadi lebih lunak",
+      "骨密度が増加し、骨が脆くなりやすくなる / Kepadatan tulang meningkat, membuat tulang menjadi rapuh",
+      "骨密度が低下し、骨が太くなりやすくなる / Kepadatan tulang menurun, membuat tulang menjadi lebih tebal",
+      "骨密度が低下し、骨の弾力性が増加する / Kepadatan tulang menurun dan elastisitas tulang meningkat"
+    ],
+    ans: 0
+  },
+  {
+    q: "高齢者に多い「尿失禁」の原因として最も適切なものはどれですか？",
+    sub: "Manakah penyebab yang paling tepat terkait dengan 'inkontinensia urin' pada lansia?",
+    opts: [
+      "膀胱の機能低下と尿道の弛緩、加齢に伴うホルモンバランスの変化 / Penurunan fungsi kandung kemih, kelonggaran saluran kencing, dan perubahan keseimbangan hormon seiring bertambahnya usia",
+      "膀胱の機能低下と尿道の緊張、加齢に伴うホルモンバランスの変化 / Penurunan fungsi kandung kemih, ketegangan saluran kencing, dan perubahan hormon",
+      "膀胱の機能亢進と尿道の弛緩、加齢に伴うホルモンバランスの変化 / Peningkatan fungsi kandung kemih, kelonggaran saluran kencing, dan perubahan hormon",
+      "膀胱の機能低下と尿道の弛緩、加齢に伴う筋力の増加 / Penurunan fungsi kandung kemih, kelonggaran saluran kencing, dan peningkatan kekuatan otot",
+      "膀胱の機能低下と尿道の閉塞、加齢に伴うホルモンバランスの変化 / Penurunan fungsi kandung kemih, penyumbatan saluran kencing, dan perubahan hormon"
+    ],
+    ans: 0
+  },
+  {
+    q: "グリーフケアにおいて大切な態度はどれですか？",
+    sub: "Sikap apa yang paling penting dalam grief care?",
+    opts: [
+      "相手の気持ちを尊重し受け止める / Menghormati dan menerima perasaan orang yang berduka",
+      "相手の気持ちを尊重し励ます / Menghormati perasaan orang yang berduka dan memberi semangat",
+      "相手の気持ちを尊重し助言する / Menghormati perasaan orang yang berduka dan memberi nasihat",
+      "相手の気持ちを尊重し説明する / Menghormati perasaan orang yang berduka dan memberi penjelasan",
+      "相手の気持ちを尊重し記録する / Menghormati perasaan orang yang berduka dan mencatatnya"
+    ],
+    ans: 0
+  },
+  {
+    q: "せん妄の特徴として最も正しいものはどれですか？",
+    sub: "Manakah ciri paling tepat dari delirium?",
+    opts: [
+      "急性発症し意識・注意力の障害を伴う可逆的な状態であること / Kondisi reversibel yang timbul secara akut disertai gangguan kesadaran dan perhatian",
+      "急性発症し意識・注意力の障害を伴う非可逆的な状態であること / Kondisi non-reversibel yang timbul akut disertai gangguan kesadaran dan perhatian",
+      "緩徐発症し意識・注意力の障害を伴う可逆的な状態であること / Kondisi reversibel yang timbul perlahan disertai gangguan kesadaran dan perhatian",
+      "急性発症し記憶・言語の障害を伴う可逆的な状態であること / Kondisi reversibel yang timbul akut disertai gangguan memori dan bahasa",
+      "急性発症し意識・注意力の障害を伴う慢性的な状態であること / Kondisi kronis yang timbul akut disertai gangguan kesadaran dan perhatian"
+    ],
+    ans: 0
+  },
+  {
+    q: "高齢者におけるうつ病の特徴として正しいものはどれですか？",
+    sub: "Manakah ciri yang benar tentang depresi pada lansia?",
+    opts: [
+      "意欲低下や食欲減退、身体症状が前景に現れやすいこと / Penurunan motivasi, hilangnya nafsu makan, dan gejala fisik sering kali menjadi dominan",
+      "意欲低下や食欲減退、精神症状が前景に現れやすいこと / Penurunan motivasi, hilang nafsu makan, dan gejala mental sering dominan",
+      "意欲亢進や食欲増進、身体症状が前景に現れやすいこと / Peningkatan motivasi, nafsu makan bertambah, dan gejala fisik sering dominan",
+      "意欲低下や食欲減退、認知症状が前景に現れやすいこと / Penurunan motivasi, hilang nafsu makan, dan gejala kognitif sering dominan",
+      "意欲低下や食欲減退、社会症状が前景に現れやすいこと / Penurunan motivasi, hilang nafsu makan, dan gejala sosial sering dominan"
+    ],
+    ans: 0
+  },
+  {
+    q: "高齢者の安全な入浴支援において重要な配慮事項はどれですか？",
+    sub: "Apa hal yang paling penting untuk diperhatikan dalam mendukung mandi yang aman bagi lansia?",
+    opts: [
+      "浴室と脱衣所の温度差を少なくし血圧変動を防ぐこと / Mengurangi perbedaan suhu antara kamar mandi dan ruang ganti untuk mencegah fluktuasi tekanan darah",
+      "浴室と脱衣所の温度差を少なくし体温上昇を防ぐこと / Mengurangi perbedaan suhu untuk mencegah kenaikan suhu tubuh",
+      "浴室と脱衣所の温度差を大きくし血圧変動を防ぐこと / Memperbesar perbedaan suhu untuk mencegah fluktuasi tekanan darah",
+      "浴室と脱衣所の温度差を少なくし筋力低下を防ぐこと / Mengurangi perbedaan suhu untuk mencegah penurunan kekuatan otot",
+      "浴室と脱衣所の温度差を少なくし脱水を防ぐこと / Mengurangi perbedaan suhu untuk mencegah dehidrasi"
+    ],
+    ans: 0
+  },
+  {
+    q: "心理学的観点から見た知的障害の特徴として最も適切なものはどれですか？",
+    sub: "Manakah ciri paling tepat dari disabilitas intelektual dari sudut pandang psikologi?",
+    opts: [
+      "認知機能の発達に制限があり、適応行動にも困難が見られること / Adanya keterbatasan dalam perkembangan fungsi kognitif serta kesulitan dalam perilaku adaptif",
+      "認知機能の発達に制限があり、運動行動にも困難が見られること / Keterbatasan perkembangan kognitif serta kesulitan dalam perilaku motorik",
+      "認知機能の発達に制限があり、言語行動にも困難が見られること / Keterbatasan perkembangan kognitif serta kesulitan dalam perilaku bahasa",
+      "認知機能の発達に制限があり、社会行動にも困難が見られること / Keterbatasan perkembangan kognitif serta kesulitan dalam perilaku sosial",
+      "認知機能の発達に制限があり、感情行動にも困難が見られること / Keterbatasan perkembangan kognitif serta kesulitan dalam perilaku emosional"
+    ],
+    ans: 0
+  },
+  {
+    q: "高齢者の入浴時に特に注意すべき危険はどれですか？",
+    sub: "Bahaya apa yang perlu diwaspadai saat mandi pada lansia?",
+    opts: [
+      "急激な血圧変動による意識消失や転倒リスクの増加 / Risiko kehilangan kesadaran dan jatuh akibat perubahan tekanan darah yang mendadak",
+      "急激な血圧変動による意識消失や脱水リスクの増加 / Risiko kehilangan kesadaran dan dehidrasi akibat perubahan tekanan darah mendadak",
+      "急激な体温変動による意識消失や転倒リスクの増加 / Risiko kehilangan kesadaran dan jatuh akibat perubahan suhu tubuh mendadak",
+      "急激な血圧変動による意識混濁や筋力低下の増加 / Risiko penurunan kesadaran dan kelemahan otot akibat perubahan tekanan darah mendadak",
+      "急激な血圧変動による意識消失や食欲低下の増加 / Risiko kehilangan kesadaran dan penurunan nafsu makan akibat perubahan tekanan darah mendadak"
+    ],
+    ans: 0
+  },
+  {
+    q: "医行為（医療行為）に関する日本の法律で、正しい説明はどれですか？",
+    sub: "Dalam hukum Jepang, mana pernyataan yang benar tentang tindakan medis (igyōi)?",
+    opts: [
+      "医行為は医師以外の者が行うことは禁じられており、資格を持つ者のみが行うことができる / Tindakan medis dilarang dilakukan oleh siapa pun selain dokter, hanya orang yang memiliki kualifikasi yang dapat melakukannya",
+      "医行為は医師以外の者が行うことは禁じられており、介護職員も行うことができない / Tindakan medis dilarang selain dokter, dan petugas perawatan juga tidak dapat melakukannya",
+      "医行為は医師以外の者が行うことは禁じられており、看護師のみが行うことができる / Tindakan medis dilarang selain dokter, hanya perawat yang dapat melakukannya",
+      "医行為は医師以外の者が行うことは禁じられており、家族のみが行うことができる / Tindakan medis dilarang selain dokter, hanya keluarga yang dapat melakukannya",
+      "医行為は医師以外の者が行うことは禁じられており、施設長のみが行うことができる / Tindakan medis dilarang selain dokter, hanya kepala fasilitas yang dapat melakukannya"
+    ],
+    ans: 0
+  },
+  {
+    q: "ICF（国際生活機能分類）における「活動」とは何を指しますか？",
+    sub: "Apa yang dimaksud dengan 'aktivitas' dalam ICF (Klasifikasi Internasional Fungsi Kehidupan)?",
+    opts: [
+      "個人が行う日常生活上の行為や課題遂行の能力を指すこと / Kemampuan individu dalam melakukan tugas dan aktivitas kehidupan sehari-hari",
+      "個人が行う社会生活上の行為や役割遂行の能力を指すこと / Kemampuan individu dalam melakukan tugas dan peran kehidupan sosial",
+      "個人が行う職業上の行為や業務遂行の能力を指すこと / Kemampuan individu dalam melakukan tugas dan pekerjaan",
+      "個人が行う学習上の行為や知識習得の能力を指すこと / Kemampuan individu dalam belajar dan memperoleh pengetahuan",
+      "個人が行う運動上の行為や身体活動の能力を指すこと / Kemampuan individu dalam bergerak dan aktivitas fisik"
+    ],
+    ans: 0
+  },
+  {
+    q: "ICFにおける「参加」とは何を意味しますか？",
+    sub: "Apa arti 'partisipasi' dalam ICF?",
+    opts: [
+      "社会生活への関与や役割遂行の実現状況を指すこと / Tingkat keterlibatan dalam kehidupan sosial dan pelaksanaan peran sosial",
+      "社会生活への関与や余暇活動の実現状況を指すこと / Tingkat keterlibatan dalam kehidupan sosial dan kegiatan waktu luang",
+      "社会生活への関与や経済活動の実現状況を指すこと / Tingkat keterlibatan dalam kehidupan sosial dan kegiatan ekonomi",
+      "社会生活への関与や学習活動の実現状況を指すこと / Tingkat keterlibatan dalam kehidupan sosial dan kegiatan belajar",
+      "社会生活への関与や家庭生活の実現状況を指すこと / Tingkat keterlibatan dalam kehidupan sosial dan kehidupan keluarga"
+    ],
+    ans: 0
+  },
+  {
+    q: "ICFにおける「環境因子」として最も適切なものはどれですか？",
+    sub: "Manakah yang paling tepat menggambarkan 'faktor lingkungan' dalam ICF?",
+    opts: [
+      "社会的支援、物理的環境、政策など外部要因全般を指すこと / Mengacu pada semua faktor eksternal seperti dukungan sosial, lingkungan fisik, dan kebijakan",
+      "社会的支援、物理的環境、遺伝など外部要因全般を指すこと / Mengacu pada faktor eksternal seperti dukungan sosial, lingkungan fisik, dan genetik",
+      "社会的支援、心理的特性、政策など外部要因全般を指すこと / Mengacu pada faktor eksternal seperti dukungan sosial, karakteristik psikologis, dan kebijakan",
+      "社会的支援、物理的環境、習慣など外部要因全般を指すこと / Mengacu pada faktor eksternal seperti dukungan sosial, lingkungan fisik, dan kebiasaan",
+      "社会的支援、物理的環境、記憶など外部要因全般を指すこと / Mengacu pada faktor eksternal seperti dukungan sosial, lingkungan fisik, dan memori"
+    ],
+    ans: 0
+  }
+];
+
+// ============ LOGIKA KUIS ============
+let playerName = "";
+let currentIndex = 0;
+let score = 0;
+let answered = false;
+
+const screenStart  = document.getElementById("screen-start");
+const screenQuiz   = document.getElementById("screen-quiz");
+const screenResult = document.getElementById("screen-result");
+
+const nameInput   = document.getElementById("nameInput");
+const startBtn    = document.getElementById("startBtn");
+const restartBtn  = document.getElementById("restartBtn");
+
+const progressBar = document.getElementById("progressBar");
+const counter     = document.getElementById("counter");
+const qText       = document.getElementById("qText");
+const qSub        = document.getElementById("qSub");
+const optionsBox  = document.getElementById("options");
+
+const resultName = document.getElementById("resultName");
+const scoreBig   = document.getElementById("scoreBig");
+const pctBig     = document.getElementById("pctBig");
+
+const LETTERS = ["A", "B", "C", "D", "E"];
+
+startBtn.addEventListener("click", () => {
+  const name = nameInput.value.trim();
+  if (!name) {
+    nameInput.focus();
+    nameInput.style.borderColor = "#e74c3c";
+    return;
+  }
+  playerName = name;
+  startQuiz();
+});
+
+nameInput.addEventListener("input", () => {
+  nameInput.style.borderColor = "#ccd2e0";
+});
+
+nameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") startBtn.click();
+});
+
+restartBtn.addEventListener("click", () => {
+  currentIndex = 0;
+  score = 0;
+  answered = false;
+  nameInput.value = "";
+  screenResult.classList.add("hidden");
+  screenStart.classList.remove("hidden");
+});
+
+function startQuiz() {
+  currentIndex = 0;
+  score = 0;
+  answered = false;
+  screenStart.classList.add("hidden");
+  screenResult.classList.add("hidden");
+  screenQuiz.classList.remove("hidden");
+  renderQuestion();
+}
+
+function renderQuestion() {
+  answered = false;
+  const q = QUESTIONS[currentIndex];
+
+  counter.textContent = (currentIndex + 1) + " / " + QUESTIONS.length;
+  progressBar.style.width = ((currentIndex) / QUESTIONS.length * 100) + "%";
+
+  qText.textContent = q.q;
+  qSub.textContent = q.sub;
+
+  optionsBox.innerHTML = "";
+  q.opts.forEach((opt, i) => {
+    const div = document.createElement("div");
+    div.className = "option";
+    div.innerHTML = '<span class="letter">' + LETTERS[i] + '.</span><span>' + opt + '</span>';
+    div.addEventListener("click", () => selectAnswer(i));
+    optionsBox.appendChild(div);
+  });
+}
+
+function selectAnswer(selectedIndex) {
+  if (answered) return;
+  answered = true;
+
+  // Tandai pilihan (tanpa menampilkan benar/salah)
+  const optionEls = optionsBox.querySelectorAll(".option");
+  optionEls.forEach((el, i) => {
+    el.classList.add("disabled");
+    if (i === selectedIndex) el.classList.add("selected");
+  });
+
+  // Hitung skor
+  if (selectedIndex === QUESTIONS[currentIndex].ans) {
+    score++;
+  }
+
+  // Auto next
+  setTimeout(() => {
+    currentIndex++;
+    if (currentIndex < QUESTIONS.length) {
+      renderQuestion();
+    } else {
+      showResult();
+    }
+  }, 350);
+}
+
+function showResult() {
+  screenQuiz.classList.add("hidden");
+  screenResult.classList.remove("hidden");
+
+  const total = QUESTIONS.length;
+  const pct = Math.round((score / total) * 100);
+
+  resultName.textContent = "Nama: " + playerName;
+  scoreBig.textContent = score;
+  pctBig.textContent = pct + "%";
+
+  progressBar.style.width = "100%";
+}
+</script>
+</body>
+</html>
