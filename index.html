@@ -157,7 +157,7 @@
 
 <script>
 // ============ DATA SOAL ============
-// Setiap soal: q = teks Jepang, sub = terjemahan Indonesia, opts = 5 pilihan (A-E), ans = index jawaban benar (0=A ... 4=E)
+// Setiap soal: q = teks Jepang, sub = terjemahan Indonesia, opts = 5 pilihan, ans = index jawaban benar (0=A ... 4=E)
 const QUESTIONS = [
   {
     q: "介護過程の目的として最も適切なものはどれですか？",
@@ -620,7 +620,7 @@ const QUESTIONS = [
     sub: "Perubahan apa yang terjadi pada tulang seiring bertambahnya usia?",
     opts: [
       "骨密度が低下し、骨が脆くなりやすくなる / Kepadatan tulang menurun, membuat tulang menjadi lebih rapuh",
-      "骨密度が低下し、骨が柔らかかくなりやすくなる / Kepadatan tulang menurun, membuat tulang menjadi lebih lunak",
+      "骨密度が低下し、骨が柔らかくなりやすくなる / Kepadatan tulang menurun, membuat tulang menjadi lebih lunak",
       "骨密度が増加し、骨が脆くなりやすくなる / Kepadatan tulang meningkat, membuat tulang menjadi rapuh",
       "骨密度が低下し、骨が太くなりやすくなる / Kepadatan tulang menurun, membuat tulang menjadi lebih tebal",
       "骨密度が低下し、骨の弾力性が増加する / Kepadatan tulang menurun dan elastisitas tulang meningkat"
@@ -761,8 +761,19 @@ const QUESTIONS = [
   }
 ];
 
-// ============ LOGIKA KUIS ============
+// ============ UTILITAS ACAK (FISHER-YATES) ============
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ============ STATE ============
 let playerName = "";
+let quizData = [];       // soal + pilihan yang sudah diacak
 let currentIndex = 0;
 let score = 0;
 let answered = false;
@@ -787,6 +798,7 @@ const pctBig     = document.getElementById("pctBig");
 
 const LETTERS = ["A", "B", "C", "D", "E"];
 
+// ============ EVENT ============
 startBtn.addEventListener("click", () => {
   const name = nameInput.value.trim();
   if (!name) {
@@ -807,30 +819,58 @@ nameInput.addEventListener("keydown", (e) => {
 });
 
 restartBtn.addEventListener("click", () => {
-  currentIndex = 0;
-  score = 0;
-  answered = false;
-  nameInput.value = "";
   screenResult.classList.add("hidden");
   screenStart.classList.remove("hidden");
+  nameInput.value = "";
 });
 
+// ============ LOGIKA ============
+function buildShuffledQuiz() {
+  // Acak urutan soal
+  const shuffledQuestions = shuffleArray(QUESTIONS);
+
+  // Untuk setiap soal, acak pilihan jawaban dan lacak index jawaban benar yang baru
+  return shuffledQuestions.map((item) => {
+    // Buat array objek { text, correct }
+    const optionObjs = item.opts.map((text, idx) => ({
+      text: text,
+      correct: idx === item.ans
+    }));
+
+    // Acak pilihan
+    const shuffledOptions = shuffleArray(optionObjs);
+
+    // Cari index jawaban benar yang baru
+    const newAnswerIndex = shuffledOptions.findIndex(o => o.correct);
+
+    return {
+      q: item.q,
+      sub: item.sub,
+      opts: shuffledOptions.map(o => o.text),
+      ans: newAnswerIndex
+    };
+  });
+}
+
 function startQuiz() {
+  quizData = buildShuffledQuiz();   // diacak setiap mulai
   currentIndex = 0;
   score = 0;
   answered = false;
+
   screenStart.classList.add("hidden");
   screenResult.classList.add("hidden");
   screenQuiz.classList.remove("hidden");
+
   renderQuestion();
 }
 
 function renderQuestion() {
   answered = false;
-  const q = QUESTIONS[currentIndex];
+  const q = quizData[currentIndex];
 
-  counter.textContent = (currentIndex + 1) + " / " + QUESTIONS.length;
-  progressBar.style.width = ((currentIndex) / QUESTIONS.length * 100) + "%";
+  counter.textContent = (currentIndex + 1) + " / " + quizData.length;
+  progressBar.style.width = ((currentIndex) / quizData.length * 100) + "%";
 
   qText.textContent = q.q;
   qSub.textContent = q.sub;
@@ -849,22 +889,19 @@ function selectAnswer(selectedIndex) {
   if (answered) return;
   answered = true;
 
-  // Tandai pilihan (tanpa menampilkan benar/salah)
   const optionEls = optionsBox.querySelectorAll(".option");
   optionEls.forEach((el, i) => {
     el.classList.add("disabled");
     if (i === selectedIndex) el.classList.add("selected");
   });
 
-  // Hitung skor
-  if (selectedIndex === QUESTIONS[currentIndex].ans) {
+  if (selectedIndex === quizData[currentIndex].ans) {
     score++;
   }
 
-  // Auto next
   setTimeout(() => {
     currentIndex++;
-    if (currentIndex < QUESTIONS.length) {
+    if (currentIndex < quizData.length) {
       renderQuestion();
     } else {
       showResult();
@@ -876,7 +913,7 @@ function showResult() {
   screenQuiz.classList.add("hidden");
   screenResult.classList.remove("hidden");
 
-  const total = QUESTIONS.length;
+  const total = quizData.length;
   const pct = Math.round((score / total) * 100);
 
   resultName.textContent = "Nama: " + playerName;
